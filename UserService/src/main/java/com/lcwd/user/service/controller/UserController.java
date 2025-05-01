@@ -5,6 +5,7 @@ import com.lcwd.user.service.entities.Rating;
 import com.lcwd.user.service.entities.User;
 import com.lcwd.user.service.services.UserService;
 import com.lcwd.user.service.services.impl.UserServiceImpl;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,11 +44,24 @@ public class UserController {
     // get single user
 
     @GetMapping("/{userId}")
+    @CircuitBreaker(name="ratingHotelBreaker",fallbackMethod = "ratingHotelFallback")
     public ResponseEntity<User>gettingUser( @PathVariable String userId){
         User user = userService.getUser(userId);
         return ResponseEntity.ok(user);
 
 
+    }
+
+    //creating fallback method for cirucitbreaker
+    public ResponseEntity<User>ratingFallback(String userId, Exception ex){
+        logger.info("FallBack is executed because service is down: ",ex.getMessage());
+        User user=User.builder()
+                .email("dummy@gmail.com")
+                .name("Dummy")
+                .about("This user is created dummy bcz some services are down")
+                .userId("12345")
+                .build();
+        return new ResponseEntity<>(user,HttpStatus.OK);
     }
 
     //get all users
